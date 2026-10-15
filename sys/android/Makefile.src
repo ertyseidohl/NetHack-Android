@@ -87,8 +87,7 @@ SYSOBJ = ioctl.o androidmain.o unixtty.o androidunix.o
 # CC = arm-linux-gcc
 #
 # For cross-compiling with Android NDK
-NDK = /path/to/android-ndk-r21e
-
+NDK = $(HOME)/Android/Sdk/ndk/27.1.12297006
 NDK_TOOLCHAIN = $(NDK)/toolchains/llvm/prebuilt/linux-x86_64/bin
 
 # Choose an ABI
@@ -118,7 +117,7 @@ LINK := $(CC)
 # Compile normally
 CFLAGS = -DANDROID -O2 -g -Wno-format -fsigned-char -fPIC -I../include
 #CFLAGS = -DANDROID -DDEBUG -g -Wno-format -fsigned-char -fPIC -I../include
-LFLAGS = -shared -Wl,--fix-cortex-a8
+LFLAGS = -shared -Wl,-z,max-page-size=16384
 
 # LFLAGS = -L/usr/X11R6/lib
 #   OR compile backwards compatible a.out format

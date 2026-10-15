@@ -10,6 +10,7 @@ out
 /tags
 /TAGS
 /.svn
+/local.properties
 
 # Win32-specific ignores
 Debug/
@@ -83,3 +84,13 @@ Makefile.gcc-orig
 
 # /win/
 /win/*/*.o
+
+# Build output
+/sys/android/app/assets
+/sys/android/app/libs
+
+# Gradle build cache
+.gradle/
+
+# IDE caches & user settings
+.idea/

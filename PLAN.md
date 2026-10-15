@@ -55,7 +55,7 @@ The original Gurr NetHack-Android codebase stopped working on modern Android dev
 1. Install base build packages:
    ```bash
    sudo apt update
-   sudo apt install -y build-essential gcc-multilib bison flex openjdk-17-jdk git curl unzip
+   sudo apt install -y build-essential gcc-multilib bison flex openjdk-17-jdk openjdk-21-jdk git curl unzip
    ```
 2. Set and verify Java environment:
    ```bash
@@ -123,15 +123,29 @@ The original Gurr NetHack-Android codebase stopped working on modern Android dev
    - `arm64-v8a`
    - `armeabi-v7a`
    - `x86_64`
+
+```bash
+cd src
+# 1. Build arm64-v8a (modern 64-bit ARM devices)
+make spotless
+make Sysandroid ABI=arm64-v8a
+# 2. Build armeabi-v7a (32-bit ARM devices)
+make spotless
+make Sysandroid ABI=armeabi-v7a
+# 3. Build x86_64 (emulator)
+make spotless
+make Sysandroid ABI=x86_64
+```
+
 4. **Data File Installation**:
-   `make install` copies game data files (`dat/*`, `license`, `help`, `rumors`, `dungeon`, special levels) into `sys/android/app/assets/nethackdir/`.
+   `make install` copies game data files (`dat/*`, `license`, `help`, `rumors`, `dungeon`, special levels) into `sys/android/app/assets/nethackdir/`. Run this in the top level dir, not /src.
 
 ### Step 1.4: Update Gradle Configuration
 1. Update `gradle/wrapper/gradle-wrapper.properties` to Gradle 8.7:
    ```properties
    distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
    ```
-2. Update root `build.gradle` to AGP 8.5+:
+2. Update root `sys/android/build.gradle` to AGP 8.5+:
    ```groovy
    buildscript {
        repositories {
@@ -147,7 +161,7 @@ The original Gurr NetHack-Android codebase stopped working on modern Android dev
    - Set `compileSdkVersion 34`
    - Set `targetSdkVersion 34`
    - Set `minSdkVersion 21`
-   - Set `namespace 'com.tbd.NetHack'`
+   - Set `namespace 'me.erty.NetHack'` (my domain name is erty.me)
    - Set Java 17 compile options
    - Set uncompressed native library packaging:
      ```groovy
@@ -160,6 +174,8 @@ The original Gurr NetHack-Android codebase stopped working on modern Android dev
 4. Clean permissions in `AndroidManifest.xml`:
    - Remove `android.permission.WRITE_EXTERNAL_STORAGE`
    - Remove `android.permission.INTERNET`
+   - Add in application: android:requestLegacyExternalStorage="true"
+   - Add in application: android:preserveLegacyExternalStorage="true"
 
 ### Step 1.5: Local Testing on Linux Mint
 1. Build native binaries:
@@ -167,19 +183,17 @@ The original Gurr NetHack-Android codebase stopped working on modern Android dev
    cd sys/android
    sh setup.sh
    cd ../..
+   make clean
    make ABI=arm64-v8a install
+   make clean
    make ABI=x86_64 install
    ```
 2. Build debug APK:
    ```bash
    cd sys/android
-   ./gradlew assembleDebug
+   ./gradlew assembleDebug # may need chmod +x first if freshly cloned.
    ```
-3. Install and run via emulator or connected device:
-   ```bash
-   adb install -r app/build/outputs/apk/debug/app-debug.apk
-   adb shell am start -n com.tbd.NetHack/com.tbd.forkfront.ForkFront
-   ```
+3. Install and run on the Android Emulator (Linux Mint): see [Appendix A: Android Emulator Setup](#appendix-a-android-emulator-setup-linux-mint).
 4. Verify:
    - Asset extraction into internal app storage
    - Character selection
@@ -311,3 +325,62 @@ Update `.github/workflows/android.yml`:
 | **M6: Tileset Fallback** | Runtime bounds check in ForkFront | No crashes with legacy tilesets on new entities |
 | **M7: Play Store Technical Prep** | Target SDK 34, unique `applicationId`, signed AAB | `./gradlew bundleRelease` passes Play Console checks |
 | **M8: Production Release** | Store assets uploaded, closed testing completed | Production release published |
+
+---
+
+## Appendix A: Android Emulator Setup (Linux Mint)
+
+Prerequisites: Android SDK and NDK already installed per Step 1.1, with `ANDROID_HOME=$HOME/Android/Sdk`.
+
+### A.1 Enable KVM Hardware Acceleration
+
+Your CPU has Intel VT-x (`vmx`). Load the KVM module and add your user to the `kvm` group:
+
+```bash
+sudo modprobe kvm_intel
+sudo usermod -aG kvm $USER
+# Log out and then back in
+```
+
+### A.2 Install the Emulator and System Image
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+
+sdkmanager --install "emulator" "system-images;android-34;google_apis;x86_64"
+```
+
+### A.3 Create an Android Virtual Device (AVD)
+
+```bash
+avdmanager create avd \
+  -n NetHackEmulator \
+  -k "system-images;android-34;google_apis;x86_64" \
+  -d "pixel_7"
+# Answer "no" if asked about a custom hardware profile.
+```
+
+### A.4 Launch the Emulator
+
+```bash
+$ANDROID_HOME/emulator/emulator -avd NetHackEmulator &
+# Wait ~60 seconds for the Android home screen to appear.
+```
+
+Verify it is visible to `adb`:
+```bash
+adb devices
+# Expected: emulator-5554  device
+```
+
+### A.5 Install and Launch the NetHack APK
+
+From the repo root (`~/workspace/NetHack-Android`):
+
+```bash
+adb install -r sys/android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n me.erty.nethack/com.tbd.forkfront.ForkFront
+```
+
+Or simply tap the NetHack icon in the emulator's app drawer.

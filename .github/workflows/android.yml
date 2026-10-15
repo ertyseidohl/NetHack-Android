@@ -25,7 +25,7 @@ jobs:
       - name: Build native Android application
         run: cd sys/android && sh ./setup.sh && cd ../.. &&  make install
       - name: Build NetHack
-        run: cd sys/android && sh gradlew build
+        run: sh ./gradlew build
       - uses: actions/upload-artifact@v5
         with:
           name: nethack-release-unsigned

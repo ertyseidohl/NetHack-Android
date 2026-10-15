@@ -4,19 +4,21 @@ plugins {
 
 android {
 
-  compileSdkVersion 30
+  namespace 'me.erty.nethack'
+  compileSdkVersion 34
   buildToolsVersion "30.0.3"
 
   defaultConfig {
-    minSdkVersion 7
-    targetSdkVersion 30
+    applicationId 'me.erty.nethack'
+    minSdkVersion 21
+    targetSdkVersion 34
     versionName '3.6.7-1'
     versionCode 3671
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_7
-    targetCompatibility JavaVersion.VERSION_1_7
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
   }
 
   lintOptions {
@@ -31,8 +33,14 @@ android {
       jniLibs.srcDirs = ['libs']
     }
   }
+
+  packaging {
+    jniLibs {
+      useLegacyPackaging = false
+    }
+  }
 }
 
 dependencies {
-  implementation 'com.tbd.forkfront:lib:1.1'
+  implementation project(':forkfront')
 }

@@ -1,0 +1,5 @@
+include ':app', ':forkfront'
+project(':app').projectDir = new File(settingsDir, 'sys/android/app')
+project(':forkfront').projectDir = new File(settingsDir, 'sys/android/forkfront/lib')
+
+rootProject.name = 'NetHack-Android'
