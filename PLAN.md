@@ -7,6 +7,21 @@ This document outlines the roadmap to:
 2. Upgrade the engine from NetHack 3.6.7 to NetHack 5.0.0 (C99 compliance, Lua 5.4, updated windowport, tile index fallback).
 3. Publish the application to Google Play as a free application complying with modern Android standards (Target API 34+, 16 KB page sizes, Scoped Storage, 64-bit ABIs, AAB format).
 
+
+## Progress Summary (Current Status)
+
+- [x] **Local Build Setup & Toolchain**: Configured Android SDK API 34, NDK r27b, and Gradle / AGP 8.13.
+- [x] **ForkFront Vendoring**: Localized `:forkfront` module; removed defunct JCenter dependencies.
+- [x] **JNI Signature Fixes (`winandroid.c`)**:
+   - Corrected `RunNetHack` argument mismatch between C and Java.
+   - Fixed `addMenu` signature descriptor from `(IIIIII[BII)V` to `(IIJIII[BII)V` (`long id` parameter).
+   - Fixed `selectMenu` descriptor from `(III)[I` to `(III)[J` and updated `and_select_menu_r` to handle `jlongArray` for 64-bit compatibility.
+   - Added JNI `ExceptionCheck` / `ExceptionClear` safeguards to prevent ART CheckJNI crashes.
+- [x] **Logging Infrastructure**: Enabled `DEBUG.java`, added persistent disk logging (`nethack_debug.log`), and linked `<android/log.h>` in `winandroid.c` for direct Logcat streaming (`__android_log_print`).
+- [x] **64-Bit Data Compilation**: Updated `sys/android/Makefile.utl` flags from `-m32` to `-m64`. Recompiled host utilities (`makedefs`, `dgn_comp`, `lev_comp`) and re-generated all level data assets (`dungeon`, `*.lev`).
+- [x] **Asset Sync & Version Validation**: Bumped asset version `ver`, updated `check_version()` in `src/version.c` to preserve version governance while resolving cross-compiler `sizeof()` discrepancies on Android (`#ifndef ANDROID`).
+- [x] **Emulator Deployment & Execution**: Successfully deployed and launched `:app` on API 34 `x86_64` Android Emulator. Character selection and initial game startup complete.
+
 ---
 
 ## 0. Technical Context: Issues with the Legacy Build

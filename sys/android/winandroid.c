@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <jni.h>
 #include <ctype.h>
+#include <android/log.h>
 
 #include "hack.h"
 #include "func_tab.h"   /* for extended commands */
@@ -229,7 +230,7 @@ void destroy_jobject(jstring jstr)
 #define JNICallO(func, ...) (*jEnv)->CallObjectMethod(jEnv, jAppInstance, func, ## __VA_ARGS__);
 
 //____________________________________________________________________________________
-void Java_com_tbd_forkfront_NetHackIO_RunNetHack(JNIEnv* env, jobject thiz, jstring path, jstring username)
+void Java_com_tbd_forkfront_NetHackIO_RunNetHack(JNIEnv* env, jobject thiz, jstring path)
 {
 	char* params[10];
 	const char* pChars;
@@ -253,9 +254,9 @@ void Java_com_tbd_forkfront_NetHackIO_RunNetHack(JNIEnv* env, jobject thiz, jstr
 	jYNFunction = (*jEnv)->GetMethodID(jEnv, jApp, "ynFunction", "([B[BI)V");
 	jGetLine = (*jEnv)->GetMethodID(jEnv, jApp, "getLine", "([BIII)Ljava/lang/String;");
 	jStartMenu = (*jEnv)->GetMethodID(jEnv, jApp, "startMenu", "(I)V");
-	jAddMenu = (*jEnv)->GetMethodID(jEnv, jApp, "addMenu", "(IIIIII[BII)V");
+	jAddMenu = (*jEnv)->GetMethodID(jEnv, jApp, "addMenu", "(IIJIII[BII)V");
 	jEndMenu = (*jEnv)->GetMethodID(jEnv, jApp, "endMenu", "(I[B)V");
-	jSelectMenu = (*jEnv)->GetMethodID(jEnv, jApp, "selectMenu", "(III)[I");
+	jSelectMenu = (*jEnv)->GetMethodID(jEnv, jApp, "selectMenu", "(III)[J");
 	jCliparound = (*jEnv)->GetMethodID(jEnv, jApp, "cliparound", "(IIII)V");
 	jDelayOutput = (*jEnv)->GetMethodID(jEnv, jApp, "delayOutput", "()V");
 	jShowDPad = (*jEnv)->GetMethodID(jEnv, jApp, "askDirection", "()V");
@@ -266,6 +267,11 @@ void Java_com_tbd_forkfront_NetHackIO_RunNetHack(JNIEnv* env, jobject thiz, jstr
 	jLoadSound = (*jEnv)->GetMethodID(jEnv, jApp, "loadSound", "([B)V");
 	jPlaySound = (*jEnv)->GetMethodID(jEnv, jApp, "playSound", "([BI)V");
 	jGetDumplogDir = (*jEnv)->GetMethodID(jEnv, jApp, "getDumplogDir", "()Ljava/lang/String;");
+
+        if((*jEnv)->ExceptionCheck(jEnv)) {
+            (*jEnv)->ExceptionDescribe(jEnv);
+            (*jEnv)->ExceptionClear(jEnv);
+        }
 
 	if(!(jReceiveKey && jReceivePosKey && jCreateWindow && jClearWindow && jDisplayWindow &&
 			jDestroyWindow && jPutString && jRawPrint && jSetCursorPos && jPrintTile &&
@@ -344,23 +350,21 @@ void set_username()
 //____________________________________________________________________________________
 void debuglog(const char *fmt, ...)
 {
-	char buf[256];
+        va_list args;
+	char buf[1024];
 
-	if(fmt != 0)
-	{
-		va_list args;
-		va_start(args, fmt);
-		vsnprintf(buf, sizeof(buf), fmt, args);
-		va_end(args);
-	}
-	else
-	{
-		strcpy(buf, "(null)");
-	}
+        va_start(args, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
 
-	jbyteArray jstr = create_bytearray(buf);
-	JNICallV(jDebugLog, jstr);
-	destroy_jobject(jstr);
+        __android_log_print(ANDROID_LOG_INFO, "NethackNative", "%s", buf);
+
+        if(jEnv && jAppInstance && jDebugLog)
+        {
+            jbyteArray jstr = create_bytearray(buf);
+            JNICallV(jDebugLog, jstr);
+            destroy_jobject(jstr);
+        }
 }
 
 //____________________________________________________________________________________
@@ -1196,13 +1200,13 @@ void and_add_menu(winid wid, int glyph, const ANY_P *ident, CHAR_P accelerator, 
 		color = -1;
 	}
 
-	//debuglog("add menu %d: %s", attr, str);
+	debuglog("add menu %d: %s", attr, str);
 
 	if(attr)
 		attr = 1<<attr;
 
 	jbyteArray jstr = create_bytearray(str);
-	JNICallV(jAddMenu, wid, tile, ident->a_int, (int)accelerator, (int)groupacc, attr, jstr, (int)preselected, color);
+	JNICallV(jAddMenu, wid, tile, (long)ident->a_int, (int)accelerator, (int)groupacc, attr, jstr, (int)preselected, color);
 	destroy_jobject(jstr);
 }
 
@@ -1252,17 +1256,17 @@ void and_end_menu(winid wid, const char *prompt)
 int and_select_menu_r(winid wid, int how, MENU_ITEM_P **selected, int reentry)
 {
 	int i, n;
-	jintArray a;
-	jint* p;
-	jint* q;
+	jlongArray a;
+	jlong* p;
+	jlong* q;
 
-	//debuglog("and_select_menu");
+	debuglog("and_select_menu");
 
-	a = (jintArray)JNICallO(jSelectMenu, wid, how, reentry);
+	a = (jlongArray)JNICallO(jSelectMenu, wid, how, reentry);
 
 	*selected = 0;
 
-	//debuglog("returned %d", a);
+	debuglog("returned %d", a);
 	if(a == 0)
 		return -1;
 
@@ -1272,14 +1276,14 @@ int and_select_menu_r(winid wid, int how, MENU_ITEM_P **selected, int reentry)
 	{
 		n >>= 1;
 
-		q = p = (*jEnv)->GetIntArrayElements(jEnv, a, 0);
+		q = p = (*jEnv)->GetLongArrayElements(jEnv, a, 0);
 		*selected = (MENU_ITEM_P*)malloc(sizeof(MENU_ITEM_P) * n);
 		for(i = 0; i < n; i++)
 		{
-			(*selected)[i].item.a_int = *p++;
-			(*selected)[i].count = *p++;
+			(*selected)[i].item.a_int = (int)*p++;
+			(*selected)[i].count = (int)*p++;
 		}
-		(*jEnv)->ReleaseIntArrayElements(jEnv, a, q, 0);
+		(*jEnv)->ReleaseLongArrayElements(jEnv, a, q, 0);
 	}
 	else if(n == 1)
 	{

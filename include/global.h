@@ -7,6 +7,7 @@
 #define GLOBAL_H
 
 #include <stdio.h>
+#include <integer.h>
 
 /*
  * Development status possibilities.
@@ -297,17 +298,17 @@ extern char *FDECL(dupstr, (const char *)); /* ditto */
 /* Used for consistency checks of various data files; declare it here so
    that utility programs which include config.h but not hack.h can see it. */
 struct version_info {
-    unsigned long incarnation;   /* actual version number */
-    unsigned long feature_set;   /* bitmask of config settings */
-    unsigned long entity_count;  /* # of monsters and objects */
-    unsigned long struct_sizes1; /* size of key structs */
-    unsigned long struct_sizes2; /* size of more key structs */
+    uint32 incarnation;   /* actual version number */
+    uint32 feature_set;   /* bitmask of config settings */
+    uint32 entity_count;  /* # of monsters and objects */
+    uint32 struct_sizes1; /* size of key structs */
+    uint32 struct_sizes2; /* size of more key structs */
 };
 
 struct savefile_info {
-    unsigned long sfi1; /* compression etc. */
-    unsigned long sfi2; /* miscellaneous */
-    unsigned long sfi3; /* thirdparty */
+    uint32 sfi1; /* compression etc. */
+    uint32 sfi2; /* miscellaneous */
+    uint32 sfi3; /* thirdparty */
 };
 #ifdef NHSTDC
 #define SFI1_EXTERNALCOMP (1UL)

@@ -285,7 +285,7 @@ WINLIB = $(WINTTYLIB)
 # IRIX 4.0.x needs -lsun if NIS (YP) is being used for passwd file lookup
 # LIBS = -lsun
 #
-LIBS =
+LIBS = -llog
 
 # make NetHack
 GAME     = nethack
