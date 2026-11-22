@@ -8,6 +8,8 @@
 
 #define E extern
 
+#include "integer.h"
+
 E int NDECL((*occupation));
 E int NDECL((*afternmv));
 

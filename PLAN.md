@@ -1,5 +1,7 @@
 NOTE: This plan was generated with Gemini 3.1 Pro (High). It may contain inaccuracies or hallucinations.
 
+Current Status: see MIGRATION.md, I'm currently trying to resolve the "Category 1" errors, which are errors around long/ulongs being written and read to/from files.
+
 # NetHack-Android: Local Build, NetHack 5.0.0 Upgrade, and Play Store Publishing Plan
 
 This document outlines the roadmap to:
@@ -154,6 +156,47 @@ make Sysandroid ABI=x86_64
 
 4. **Data File Installation**:
    `make install` copies game data files (`dat/*`, `license`, `help`, `rumors`, `dungeon`, special levels) into `sys/android/app/assets/nethackdir/`. Run this in the top level dir, not /src.
+
+
+### Step 1.3.1: Host Utility 64-Bit Compilation & Dungeon Asset Pipeline
+
+1. **Host Utility Compiler Flags (`sys/android/Makefile.utl`)**:
+   - Legacy build files hardcoded `-m32` flags for host utility binaries (`makedefs`, `dgn_comp`, `lev_comp`).
+   - For 64-bit Android targets (`x86_64`, `arm64-v8a`), `sys/android/Makefile.utl` must be updated to `-m64`:
+     ```makefile
+     CFLAGS = -DANDROID -m64 -Wno-format -fsigned-char -I../include
+     LFLAGS = -m64
+     ```
+
+2. **Cross-Platform Header Struct Compatibility (`include/global.h`)**:
+   - `struct version_info` and `struct savefile_info` in `include/global.h` must use explicit fixed-width `uint32` types rather than native `unsigned long` (which varies between 32-bit and 64-bit word sizes):
+     ```c
+     struct version_info {
+         uint32 incarnation;   /* actual version number */
+         uint32 feature_set;   /* bitmask of config settings */
+         uint32 entity_count;  /* # of monsters and objects */
+         uint32 struct_sizes1; /* size of key structs */
+         uint32 struct_sizes2; /* size of more key structs */
+     };
+     ```
+
+3. **Dungeon and Level Generation Commands**:
+   - To compile fresh dungeon descriptions (`dungeon`) and level layouts (`*.lev`):
+     ```bash
+     # 1. Clean and build host utilities
+     make -C util -f ../sys/android/Makefile.utl clean
+     make -C util -f ../sys/android/Makefile.utl
+
+     # 2. Compile dungeon and special levels
+     make -C dat -f ../sys/android/Makefile.dat
+
+     # 3. Copy generated binaries into Android app assets
+     cp dat/dungeon dat/*.lev dat/quest.dat dat/oracles dat/rumors sys/android/app/assets/nethackdir/
+     ```
+
+4. **Asset Extraction & Version Refresh (`sys/android/app/assets/ver`)**:
+   - Android's `UpdateAssets.java` reads the version integer in `sys/android/app/assets/ver` on startup.
+   - Incrementing `sys/android/app/assets/ver` (e.g. `108` -> `109`) forces `UpdateAssets.java` to re-extract all data files from APK assets into internal storage (`/storage/emulated/0/Android/data/<package>/files/`), ensuring outdated cached levels are replaced.
 
 ### Step 1.4: Update Gradle Configuration
 1. Update `gradle/wrapper/gradle-wrapper.properties` to Gradle 8.7:

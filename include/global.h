@@ -7,7 +7,8 @@
 #define GLOBAL_H
 
 #include <stdio.h>
-#include <integer.h>
+
+#include "integer.h"
 
 /*
  * Development status possibilities.

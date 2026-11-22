@@ -1,3 +1,5 @@
+This document was written by Gemini 3.6 flash. It may contain errors or hallucinations.
+
 # 64-Bit Compatibility & NetHack Engine Migration Plan
 
 This document outlines the identified 64-bit architecture incompatibilities across the NetHack C engine, JNI bridge (`winandroid.c`), and file serialization format, along with the plan for auditing and resolving them.
